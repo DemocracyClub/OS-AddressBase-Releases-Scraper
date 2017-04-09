@@ -1,2 +1,4 @@
-lxml==3.6.4
 cssselect==0.9.1
+lxml==3.6.4
+requests==2.13.0
+scraperwiki==0.5.1
