@@ -1,24 +1,38 @@
-# This is a template for a Python scraper on morph.io (https://morph.io)
-# including some code snippets below that you should find helpful
+import lxml.html
+import os
+import requests
+from sqlalchemy.exc import OperationalError
 
-# import scraperwiki
-# import lxml.html
-#
-# # Read in a page
-# html = scraperwiki.scrape("http://foo.com")
-#
-# # Find something on the page using css selectors
-# root = lxml.html.fromstring(html)
-# root.cssselect("div[align='left']")
-#
-# # Write out to the sqlite database using scraperwiki library
-# scraperwiki.sqlite.save(unique_keys=['name'], data={"name": "susan", "occupation": "software developer"})
-#
-# # An arbitrary query against the database
-# scraperwiki.sql.select("* from data where 'name'='peter'")
+# hack to override sqlite database filename
+# see: https://help.morph.io/t/using-python-3-with-morph-scraperwiki-fork/148
+os.environ['SCRAPERWIKI_DATABASE_NAME'] = 'sqlite:///data.sqlite'
+import scraperwiki
 
-# You don't have to do things with the ScraperWiki and lxml libraries.
-# You can use whatever libraries you want: https://morph.io/documentation/python
-# All that matters is that your final data is written to an SQLite database
-# called "data.sqlite" in the current working directory which has at least a table
-# called "data".
+SLACK_WEBHOOK_URL = os.environ['MORPH_SLACK_WEBHOOK_URL']
+
+def post_slack_message(message):
+    r = requests.post(SLACK_WEBHOOK_URL, json={ "text": message })
+
+html = scraperwiki.scrape("https://www.ordnancesurvey.co.uk/business-and-government/help-and-support/products/addressbase-release-notes.html")
+root = lxml.html.fromstring(html)
+
+h3_tags = root.cssselect('h3')
+for h3 in h3_tags:
+    text = str(h3.text)
+    if 'Epoch' in text:
+        release = text
+        try:
+            exists = scraperwiki.sql.select(
+                "* FROM 'data' WHERE release=?", release)
+            if len(exists) == 0:
+                print(release)
+                slack_message = "New AddressBase release %s available" % (release)
+                post_slack_message(slack_message)
+        except OperationalError:
+            # The first time we run the scraper it will throw
+            # because the table doesn't exist yet
+            pass
+
+        scraperwiki.sqlite.save(
+            unique_keys=['release'], data={'release': release}, table_name='data')
+        scraperwiki.sqlite.commit_transactions()
