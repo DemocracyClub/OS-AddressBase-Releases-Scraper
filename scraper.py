@@ -1,6 +1,6 @@
 import lxml.html
 import os
-import requests
+from polling_bot.brain import SlackClient, GitHubClient
 from sqlalchemy.exc import OperationalError
 
 # hack to override sqlite database filename
@@ -8,10 +8,25 @@ from sqlalchemy.exc import OperationalError
 os.environ['SCRAPERWIKI_DATABASE_NAME'] = 'sqlite:///data.sqlite'
 import scraperwiki
 
-SLACK_WEBHOOK_URL = os.environ['MORPH_SLACK_WEBHOOK_URL']
 
-def post_slack_message(message):
-    r = requests.post(SLACK_WEBHOOK_URL, json={ "text": message })
+SLACK_WEBHOOK_URL = os.environ['MORPH_SLACK_WEBHOOK_URL']
+GITHUB_API_KEY = os.environ['MORPH_GITHUB_API_KEY']
+
+
+def post_slack_message(release):
+    message = "New AddressBase release %s available" % (release)
+    slack = SlackClient(SLACK_WEBHOOK_URL)
+    slack.post_message(message)
+
+
+def raise_github_issue(release):
+    owner = 'DemocracyClub'
+    repo = 'polling_deploy'
+    title = 'Import new AddressBase'
+    body = "@chris48s - New AddressBase release %s available" % (release)
+    github = GitHubClient(GITHUB_API_KEY)
+    github.raise_issue(owner, repo, title, body)
+
 
 html = scraperwiki.scrape("https://www.ordnancesurvey.co.uk/business-and-government/help-and-support/products/addressbase-release-notes.html")
 root = lxml.html.fromstring(html)
@@ -26,8 +41,8 @@ for h3 in h3_tags:
                 "* FROM 'data' WHERE release=?", release)
             if len(exists) == 0:
                 print(release)
-                slack_message = "New AddressBase release %s available" % (release)
-                post_slack_message(slack_message)
+                post_slack_message(release)
+                raise_github_issue(release)
         except OperationalError:
             # The first time we run the scraper it will throw
             # because the table doesn't exist yet
