@@ -8,9 +8,15 @@ from sqlalchemy.exc import OperationalError
 os.environ['SCRAPERWIKI_DATABASE_NAME'] = 'sqlite:///data.sqlite'
 import scraperwiki
 
+try:
+    SLACK_WEBHOOK_URL = os.environ['MORPH_POLLING_BOT_SLACK_WEBHOOK_URL']
+except KeyError:
+    SLACK_WEBHOOK_URL = None
 
-SLACK_WEBHOOK_URL = os.environ['MORPH_POLLING_BOT_SLACK_WEBHOOK_URL']
-GITHUB_API_KEY = os.environ['MORPH_GITHUB_ISSUE_ONLY_API_KEY']
+try:
+    GITHUB_API_KEY = os.environ['MORPH_GITHUB_ISSUE_ONLY_API_KEY']
+except KeyError:
+    GITHUB_API_KEY = None
 
 
 def post_slack_message(release):
@@ -41,8 +47,10 @@ for h3 in h3_tags:
                 "* FROM 'data' WHERE release=?", release)
             if len(exists) == 0:
                 print(release)
-                post_slack_message(release)
-                raise_github_issue(release)
+                if SLACK_WEBHOOK_URL:
+                    post_slack_message(release)
+                if GITHUB_API_KEY:
+                    raise_github_issue(release)
         except OperationalError:
             # The first time we run the scraper it will throw
             # because the table doesn't exist yet
