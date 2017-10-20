@@ -9,8 +9,8 @@ os.environ['SCRAPERWIKI_DATABASE_NAME'] = 'sqlite:///data.sqlite'
 import scraperwiki
 
 
-SLACK_WEBHOOK_URL = os.environ['MORPH_SLACK_WEBHOOK_URL']
-GITHUB_API_KEY = os.environ['MORPH_GITHUB_API_KEY']
+SLACK_WEBHOOK_URL = os.environ['MORPH_POLLING_BOT_SLACK_WEBHOOK_URL']
+GITHUB_API_KEY = os.environ['MORPH_GITHUB_ISSUE_ONLY_API_KEY']
 
 
 def post_slack_message(release):
