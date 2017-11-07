@@ -8,6 +8,9 @@ from sqlalchemy.exc import OperationalError
 os.environ['SCRAPERWIKI_DATABASE_NAME'] = 'sqlite:///data.sqlite'
 import scraperwiki
 
+
+SEND_NOTIFICATIONS = True
+
 try:
     SLACK_WEBHOOK_URL = os.environ['MORPH_POLLING_BOT_SLACK_WEBHOOK_URL']
 except KeyError:
@@ -47,9 +50,9 @@ for h3 in h3_tags:
                 "* FROM 'data' WHERE release=?", release)
             if len(exists) == 0:
                 print(release)
-                if SLACK_WEBHOOK_URL:
+                if SLACK_WEBHOOK_URL and SEND_NOTIFICATIONS:
                     post_slack_message(release)
-                if GITHUB_API_KEY:
+                if GITHUB_API_KEY and SEND_NOTIFICATIONS:
                     raise_github_issue(release)
         except OperationalError:
             # The first time we run the scraper it will throw
