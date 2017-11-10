@@ -23,7 +23,7 @@ except KeyError:
 
 
 def post_slack_message(release):
-    message = "New AddressBase release %s available" % (release)
+    message = "New AddressBase release %s available. @chris48s - Order it from https://www.ordnancesurvey.co.uk/psma/ now!" % (release)
     slack = SlackClient(SLACK_WEBHOOK_URL)
     slack.post_message(message)
 
