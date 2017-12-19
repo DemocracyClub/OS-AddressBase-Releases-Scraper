@@ -1,7 +1,7 @@
 import lxml.html
 import os
 from polling_bot.brain import SlackClient, GitHubClient
-from sqlalchemy.exc import OperationalError
+
 
 # hack to override sqlite database filename
 # see: https://help.morph.io/t/using-python-3-with-morph-scraperwiki-fork/148
@@ -37,6 +37,14 @@ def raise_github_issue(release):
     github.raise_issue(owner, repo, title, body)
 
 
+def init():
+    scraperwiki.sql.execute("CREATE TABLE IF NOT EXISTS data (release TEXT);")
+    scraperwiki.sql.execute("""
+        CREATE UNIQUE INDEX IF NOT EXISTS
+        data_release_unique ON data (release);""")
+
+
+init()
 html = scraperwiki.scrape("https://www.ordnancesurvey.co.uk/business-and-government/help-and-support/products/addressbase-release-notes.html")
 root = lxml.html.fromstring(html)
 
@@ -45,19 +53,14 @@ for h3 in h3_tags:
     text = str(h3.text)
     if 'Epoch' in text:
         release = text
-        try:
-            exists = scraperwiki.sql.select(
-                "* FROM 'data' WHERE release=?", release)
-            if len(exists) == 0:
-                print(release)
-                if SLACK_WEBHOOK_URL and SEND_NOTIFICATIONS:
-                    post_slack_message(release)
-                if GITHUB_API_KEY and SEND_NOTIFICATIONS:
-                    raise_github_issue(release)
-        except OperationalError:
-            # The first time we run the scraper it will throw
-            # because the table doesn't exist yet
-            pass
+        exists = scraperwiki.sql.select(
+            "* FROM 'data' WHERE release=?", release)
+        if len(exists) == 0:
+            print(release)
+            if SLACK_WEBHOOK_URL and SEND_NOTIFICATIONS:
+                post_slack_message(release)
+            if GITHUB_API_KEY and SEND_NOTIFICATIONS:
+                raise_github_issue(release)
 
         scraperwiki.sqlite.save(
             unique_keys=['release'], data={'release': release}, table_name='data')
