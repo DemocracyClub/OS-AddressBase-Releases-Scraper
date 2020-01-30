@@ -49,19 +49,22 @@ html = scraperwiki.scrape("https://www.ordnancesurvey.co.uk/business-and-governm
 root = lxml.html.fromstring(html)
 
 headings = root.cssselect('strong')
-for h in headings:
-    text = str(h.text)
-    if 'epoch' in text.lower():
-        release = text
-        exists = scraperwiki.sql.select(
-            "* FROM 'data' WHERE release=?", release)
-        if len(exists) == 0:
-            print(release)
-            if SLACK_WEBHOOK_URL and SEND_NOTIFICATIONS:
-                post_slack_message(release)
-            if GITHUB_API_KEY and SEND_NOTIFICATIONS:
-                raise_github_issue(release)
+headings_text = [str(h.text) for h in headings]
+releases = [h for h in headings_text if 'epoch' in h.lower()]
 
-        scraperwiki.sqlite.save(
-            unique_keys=['release'], data={'release': release}, table_name='data')
-        scraperwiki.sqlite.commit_transactions()
+if len(releases) == 0:
+    raise Exception("Couldn't find any releases!")
+
+for release in releases:
+    exists = scraperwiki.sql.select(
+        "* FROM 'data' WHERE release=?", release)
+    if len(exists) == 0:
+        print(release)
+        if SLACK_WEBHOOK_URL and SEND_NOTIFICATIONS:
+            post_slack_message(release)
+        if GITHUB_API_KEY and SEND_NOTIFICATIONS:
+            raise_github_issue(release)
+
+    scraperwiki.sqlite.save(
+        unique_keys=['release'], data={'release': release}, table_name='data')
+    scraperwiki.sqlite.commit_transactions()
