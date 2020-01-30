@@ -48,10 +48,10 @@ init()
 html = scraperwiki.scrape("https://www.ordnancesurvey.co.uk/business-and-government/help-and-support/products/addressbase-release-notes.html")
 root = lxml.html.fromstring(html)
 
-h3_tags = root.cssselect('h3')
-for h3 in h3_tags:
-    text = str(h3.text)
-    if 'Epoch' in text:
+headings = root.cssselect('strong')
+for h in headings:
+    text = str(h.text)
+    if 'epoch' in text.lower():
         release = text
         exists = scraperwiki.sql.select(
             "* FROM 'data' WHERE release=?", release)
