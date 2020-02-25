@@ -23,7 +23,7 @@ except KeyError:
 
 
 def post_slack_message(release):
-    message = "New AddressBase release %s available. @chris48s - Order it from https://www.ordnancesurvey.co.uk/psma/ now!" % (release)
+    message = "New AddressBase release %s available. Order it from https://www.ordnancesurvey.co.uk/psma/" % (release)
     slack = SlackClient(SLACK_WEBHOOK_URL)
     slack.post_message(message)
 
@@ -32,7 +32,7 @@ def raise_github_issue(release):
     owner = 'DemocracyClub'
     repo = 'polling_deploy'
     title = 'Import new AddressBase'
-    body = "@chris48s - New AddressBase release %s available" % (release)
+    body = "New AddressBase release %s available" % (release)
     github = GitHubClient(GITHUB_API_KEY)
     github.raise_issue(owner, repo, title, body)
 
